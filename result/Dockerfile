@@ -1,25 +1,25 @@
-FROM node:18-slim
+# Use a multi-stage build to optimize the final image size
+FROM node:18-alpine AS builder
 
-# add curl for healthcheck
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl tini && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /usr/local/app
-
-# have nodemon available for local dev use (file watching)
-RUN npm install -g nodemon
+WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci && \
- npm cache clean --force && \
- mv /usr/local/app/node_modules /node_modules
+RUN npm install --only=production
 
 COPY . .
+# second stage
+FROM node:18-alpine
 
-ENV PORT=80
-EXPOSE 80
+WORKDIR /app
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/server.js ./server.js
+COPY --from=builder /app/views ./views
+COPY --from=builder /app/package*.json ./
+
+EXPOSE 4000
+
 CMD ["node", "server.js"]
