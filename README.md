@@ -8,15 +8,26 @@ The app is composed of several services, each running in its own container:
 
 ![Architecture Diagram](architecture.excalidraw.png)
 
-Frontend (vote): Python web app for casting votes (http://localhost:5000)
+- Frontend (`vote`): Python web app for casting votes (http://localhost:5000)
+- Redis (`redis`): Message queue to collect votes
+- Worker (`worker`): .NET service that consumes votes and stores them in Postgres
+- Postgres (`db`): Database for persisting votes
+- Result (`result`): Node.js web app showing live results (http://localhost:5001)
 
-Redis: Message queue to collect votes
+### 🕸️ Docker Networks
+This stack uses two overlay networks in `docker-compose.yml`:
 
-Worker: .NET service that consumes votes and stores them in Postgres
+- `frontend-network`:
+  - `vote`
+  - `result`
+- `backend-network`:
+  - `redis`
+  - `db`
+  - `worker`
+  - `vote`
+  - `result`
 
-Postgres: Database for persisting votes
-
-Result: Node.js web app showing live results (http://localhost:5001)
+`vote` and `result` are attached to both networks to bridge frontend traffic and backend data flow.
 
 ## 🛠️ Prerequisites
 
